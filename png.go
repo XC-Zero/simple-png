@@ -11,11 +11,12 @@ var pngHeaderBytes = []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
 var pngHeader = string(pngHeaderBytes)
 
 type Png struct {
-	IHDR  *IHDR
-	IDATs []*IDAT
-	TEXTs []*TEXT
-	IEND  *IEND
-	TIME
+	IHDR   *IHDR
+	IDATs  []*IDAT
+	TEXTs  []*TEXT
+	ZTXTs  []*ZTXT
+	IEND   *IEND
+	TIME   *TIME
 	chunks []*chunk
 	bs     []byte
 }
@@ -133,7 +134,6 @@ func (p *Png) parseBaseChunk() error {
 	p.IDATs = IDATs
 
 	var TEXTs []*TEXT
-
 	for {
 		var text = &TEXT{}
 		err := p.ParseChunk(text)
@@ -146,8 +146,28 @@ func (p *Png) parseBaseChunk() error {
 		}
 		TEXTs = append(TEXTs, text)
 	}
-
 	p.TEXTs = TEXTs
+
+	var ZTXTs []*ZTXT
+	for {
+		var text = &ZTXT{}
+		err := p.ParseChunk(text)
+		if err != nil {
+			if errors.Is(err, chunkNotFoundErr) {
+				break
+			} else {
+				return errors.WithStack(err)
+			}
+		}
+		ZTXTs = append(ZTXTs, text)
+	}
+	p.ZTXTs = ZTXTs
+
+	var TIME = &TIME{}
+	err = p.ParseChunk(TIME)
+	if err == nil {
+		p.TIME = TIME
+	}
 
 	var IEND = &IEND{}
 	err = p.ParseChunk(IEND)
