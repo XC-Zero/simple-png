@@ -1,8 +1,12 @@
-# simple-png
-pure go png parse
+package main
 
-```go
+import (
+	"log"
+	"os"
+	"testing"
+)
 
+func TestParsePng(t *testing.T) {
 	open, err := os.Open("./demo.png")
 	if err != nil {
 		panic(err)
@@ -11,13 +15,9 @@ pure go png parse
 	if err != nil {
 		panic(err)
 	}
-	// print png image data
 	log.Println(*p.IDATs[0])
-	// print png addition text
 	log.Println(*p.TEXTs[0])
-	
-	// print other chunks
 	for i := range p.chunks {
 		log.Println(string(p.chunks[i].code[:]))
 	}
-```
+}
