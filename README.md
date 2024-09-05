@@ -1,4 +1,4 @@
-# simple-png
+# Simple-png
 
 ### pure go png parse
  
@@ -8,7 +8,7 @@
 
 ```go
 
-	open, err := os.Open("./demo.png")
+	open, err := os.Open("./png-format.png")
 	if err != nil {
 		panic(err)
 	}
@@ -46,7 +46,7 @@
     }
     
     func TestCustomChunk(t *testing.T) {
-      open, err := os.Open("./demo.png")
+      open, err := os.Open("./png-format.png")
       if err != nil {
         panic(err)
       }
@@ -62,7 +62,16 @@
     }
 
 
-```
+```  
 
+
+---  
+# Png Struct   
+
+  
+  ![png-format.png](png-format.png)![png.png](png.png)    
+   
+
+---  
 ## TODO:
  - ADD EDIT 

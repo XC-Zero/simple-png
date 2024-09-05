@@ -7,7 +7,7 @@ import (
 )
 
 func TestParsePng(t *testing.T) {
-	open, err := os.Open("./demo.png")
+	open, err := os.Open("./png-format.png")
 	if err != nil {
 		panic(err)
 	}
@@ -35,7 +35,7 @@ func (c *CustomChunkParse) Parse(chunk *chunk) error {
 }
 
 func TestCustomChunk(t *testing.T) {
-	open, err := os.Open("./demo.png")
+	open, err := os.Open("./png-format.png")
 	if err != nil {
 		panic(err)
 	}

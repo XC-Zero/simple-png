@@ -8,7 +8,7 @@ import (
 )
 
 // png format  https://www.w3.org/TR/PNG-Chunks.html
-var b binary.ByteOrder = binary.BigEndian
+var by binary.ByteOrder = binary.BigEndian
 
 type ChunkName string
 
@@ -103,15 +103,11 @@ type IHDR struct {
 }
 
 func (c *IHDR) Parse(chunk *chunk) error {
-	code := ChunkName(chunk.code[:])
-	if code != IHDRChunk {
-		return errors.New("invalid chunk code")
-	}
 	if chunk.data == nil || len(chunk.data) < 13 {
 		return errors.New("invalid chunk data")
 	}
-	c.Width = b.Uint32(chunk.data[:4])
-	c.Height = b.Uint32(chunk.data[4:8])
+	c.Width = by.Uint32(chunk.data[:4])
+	c.Height = by.Uint32(chunk.data[4:8])
 	c.BitDepth = chunk.data[8]
 	c.ColorType = chunk.data[9]
 	c.CompressionMethod = chunk.data[10]
@@ -164,6 +160,10 @@ func (i *IEND) ChunkName() ChunkName {
 //
 // There is no requirement that the palette entries all be used by the image, nor that they all be different.
 type PLTE struct {
+	Colors []*PLTEColor
+}
+
+type PLTEColor struct {
 	Red   uint8
 	Green uint8
 	Blue  uint8
@@ -174,9 +174,17 @@ func (p *PLTE) ChunkName() ChunkName {
 }
 
 func (p *PLTE) Parse(chunk *chunk) error {
-	p.Red = chunk.data[0]
-	p.Green = chunk.data[1]
-	p.Blue = chunk.data[2]
+	if chunk.data == nil || len(chunk.data)%3 != 0 || len(chunk.data) < 3 {
+		return errors.New("invalid plte chunk data")
+	}
+	for i := 0; i < len(chunk.data)-3; i += 3 {
+		var pc = &PLTEColor{}
+		pc.Red = chunk.data[i]
+		pc.Green = chunk.data[i+1]
+		pc.Blue = chunk.data[i+2]
+		p.Colors = append(p.Colors, pc)
+	}
+
 	return nil
 }
 
@@ -208,7 +216,7 @@ func (i *IDAT) ChunkName() ChunkName {
 }
 
 func (i *IDAT) Parse(chunk *chunk) error {
-	i.Length = b.Uint32(chunk.len[:])
+	i.Length = by.Uint32(chunk.len[:])
 	i.ChunkTypeCode = string(chunk.code[:])
 	i.Data = chunk.data[:]
 	return nil
@@ -243,6 +251,11 @@ func (i *IDAT) Parse(chunk *chunk) error {
 //
 // See Recommendations for Decoders: Background color.
 type BKGD struct {
+	Palette uint8
+	Gray    uint16
+	Red     uint16
+	Green   uint16
+	Blue    uint16
 }
 
 func (b *BKGD) ChunkName() ChunkName {
@@ -250,8 +263,15 @@ func (b *BKGD) ChunkName() ChunkName {
 }
 
 func (b *BKGD) Parse(chunk *chunk) error {
-	//TODO implement me
-	panic("implement me")
+	if chunk.data == nil || len(chunk.data) < 9 {
+		return errors.New("invalid bkgd chunk data")
+	}
+	b.Palette = chunk.data[0]
+	b.Gray = by.Uint16(chunk.data[1:3])
+	b.Red = by.Uint16(chunk.data[3:5])
+	b.Green = by.Uint16(chunk.data[5:7])
+	b.Blue = by.Uint16(chunk.data[7:9])
+	return nil
 }
 
 /*
@@ -282,6 +302,14 @@ func (b *BKGD) Parse(chunk *chunk) error {
 //
 // See Recommendations for Encoders: Encoder color handling, and Recommendations for Decoders: Decoder color handling.
 type CHRM struct {
+	WhiteX uint32
+	WhiteY uint32
+	RedX   uint32
+	RedY   uint32
+	GreenX uint32
+	GreenY uint32
+	BlueX  uint32
+	BlueY  uint32
 }
 
 func (c *CHRM) ChunkName() ChunkName {
@@ -289,8 +317,18 @@ func (c *CHRM) ChunkName() ChunkName {
 }
 
 func (c *CHRM) Parse(chunk *chunk) error {
-	//TODO implement me
-	panic("implement me")
+	if chunk.data == nil || len(chunk.data) < 32 {
+		return errors.New("invalid chrm chunk data")
+	}
+	c.WhiteX = by.Uint32(chunk.data[:4])
+	c.WhiteY = by.Uint32(chunk.data[4:8])
+	c.RedX = by.Uint32(chunk.data[8:12])
+	c.RedY = by.Uint32(chunk.data[12:16])
+	c.GreenX = by.Uint32(chunk.data[16:20])
+	c.GreenY = by.Uint32(chunk.data[20:24])
+	c.BlueX = by.Uint32(chunk.data[24:28])
+	c.BlueY = by.Uint32(chunk.data[28:32])
+	return nil
 }
 
 /*
@@ -312,6 +350,7 @@ func (c *CHRM) Parse(chunk *chunk) error {
 //
 // See Gamma correction, Recommendations for Encoders: Encoder gamma handling, and Recommendations for Decoders: Decoder gamma handling.
 type GAMA struct {
+	ImageGamma uint32
 }
 
 func (g *GAMA) ChunkName() ChunkName {
@@ -319,8 +358,11 @@ func (g *GAMA) ChunkName() ChunkName {
 }
 
 func (g *GAMA) Parse(chunk *chunk) error {
-	//TODO implement me
-	panic("implement me")
+	if chunk.data == nil || len(chunk.data) < 4 {
+		return errors.New("invalid gama chunk data")
+	}
+	g.ImageGamma = by.Uint32(chunk.data[:4])
+	return nil
 }
 
 /*
@@ -341,6 +383,7 @@ func (g *GAMA) Parse(chunk *chunk) error {
 //
 // See Rationale: Palette histograms, and Recommendations for Decoders: Suggested-palette and histogram usage.
 type HIST struct {
+	Elements []uint16
 }
 
 func (h *HIST) ChunkName() ChunkName {
@@ -348,8 +391,16 @@ func (h *HIST) ChunkName() ChunkName {
 }
 
 func (h *HIST) Parse(chunk *chunk) error {
-	//TODO implement me
-	panic("implement me")
+	if chunk.data == nil || len(chunk.data)%2 != 0 {
+		return errors.New("invalid hist chunk data")
+	}
+	if len(chunk.data) == 0 {
+		return nil
+	}
+	for i := 0; i < len(h.Elements)-2; i += 2 {
+		h.Elements = append(h.Elements, by.Uint16(chunk.data[i:i+2]))
+	}
+	return nil
 }
 
 /*
@@ -389,8 +440,11 @@ func (p *PHYS) ChunkName() ChunkName {
 }
 
 func (p *PHYS) Parse(chunk *chunk) error {
-	p.X = b.Uint32(chunk.data[:4])
-	p.Y = b.Uint32(chunk.data[4:8])
+	if chunk.data == nil || len(chunk.data) < 9 {
+		return errors.New("invalid phys chunk data")
+	}
+	p.X = by.Uint32(chunk.data[:4])
+	p.Y = by.Uint32(chunk.data[4:8])
 	p.UnitSpecifier = chunk.data[8]
 	return nil
 }
@@ -402,7 +456,7 @@ func (p *PHYS) Parse(chunk *chunk) error {
 */
 
 // SBIT
-// TODO !
+//
 // To simplify decoders, PNG specifies that only certain sample depths can be used, and further specifies that sample values should be scaled to the full range of possible values at the sample depth. However, the sBIT chunk is provided in order to store the original number of significant bits. This allows decoders to recover the original data losslessly even if the data had a sample depth not directly supported by PNG. We recommend that an encoder emit an sBIT chunk if it has converted the data from a lower sample depth.
 // For color type 0 (grayscale), the sBIT chunk contains a single byte, indicating the number of bits that were significant in the source data.
 //
@@ -422,6 +476,7 @@ func (p *PHYS) Parse(chunk *chunk) error {
 //
 // See Recommendations for Encoders: Sample depth scaling and Recommendations for Decoders: Sample depth rescaling.
 type SBIT struct {
+	OrgData [4]byte
 }
 
 func (s *SBIT) ChunkName() ChunkName {
@@ -429,8 +484,17 @@ func (s *SBIT) ChunkName() ChunkName {
 }
 
 func (s *SBIT) Parse(chunk *chunk) error {
-	//TODO implement me
-	panic("implement me")
+	if chunk.data == nil || len(chunk.data) < 1 {
+		return errors.New("invalid sbit chunk data")
+	}
+	for i := 0; i < len(s.OrgData); i++ {
+		if len(chunk.data) <= i {
+			s.OrgData[i] = 0
+		} else {
+			s.OrgData[i] = chunk.data[i]
+		}
+	}
+	return nil
 }
 
 /*
@@ -507,7 +571,7 @@ func (t *TIME) ChunkName() ChunkName {
 }
 
 func (t *TIME) Parse(chunk *chunk) error {
-	t.Year = b.Uint16(chunk.data[:2])
+	t.Year = by.Uint16(chunk.data[:2])
 	t.Month = chunk.data[2]
 	t.Day = chunk.data[3]
 	t.Hour = chunk.data[4]
