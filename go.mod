@@ -1,4 +1,4 @@
-module simple-png
+module github.com/XC-Zero/simple-png
 
 go 1.23.0
 

@@ -1,4 +1,4 @@
-package main
+package simple_png
 
 import (
 	"encoding/binary"
