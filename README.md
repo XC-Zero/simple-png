@@ -69,7 +69,7 @@
 # Png Struct   
 
   
-  ![png-format.png](png-format.png)![png.png](png.png)    
+  ![png-format.png](png-format.png)
    
 
 ---  
